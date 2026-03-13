@@ -858,8 +858,8 @@
                 <input type="text" inputmode="numeric" pattern="[0-9]*" id="editNotebookScore" placeholder="0-5">
             </div>
             <div class="edit-field" id="editTotalField">
-                <label>Ümumi qiymət (0-10):</label>
-                <input type="text" inputmode="numeric" pattern="[0-9]*" id="editTotalScore" placeholder="0-10">
+                <label>Ümumi qiymət (0-8):</label>
+                <input type="text" inputmode="numeric" pattern="[0-9]*" id="editTotalScore" placeholder="0-8">
             </div>
             <div class="edit-field" id="editNoteField">
                 <label>Dəftər qeydi:</label>
@@ -1296,12 +1296,12 @@
                         <div style="display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
                             <div style="background:linear-gradient(135deg, #e5edea, #c5d1cb); border-radius:12px; padding:15px 25px; min-width:150px;">
                                 <div style="font-size:12px; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Sual balı</div>
-                                <div id="questionTotalDisplay" style="font-size:28px; font-weight:800; color:#2e4a3e;">0/5</div>
+                                <div id="questionTotalDisplay" style="font-size:28px; font-weight:800; color:#2e4a3e;">0/4</div>
                             </div>
                             <div style="background:linear-gradient(135deg, #2e4a3e, #455f51); border-radius:12px; padding:15px 25px; min-width:150px;">
                                 <div style="font-size:12px; color:rgba(255,255,255,0.7); font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Ümumi qiymət</div>
-                                <input type="text" inputmode="numeric" pattern="[0-9]*" class="score-input" id="notebookScore" value="" placeholder="0-10" style="font-size:22px; font-weight:800; width:80px; background:rgba(255,255,255,0.95); color:#2e4a3e; text-align:center;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('notebookNote').focus();}">
-                                <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-top:4px;">/10</div>
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" class="score-input" id="notebookScore" value="" placeholder="0-8" style="font-size:22px; font-weight:800; width:80px; background:rgba(255,255,255,0.95); color:#2e4a3e; text-align:center;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('notebookNote').focus();}">
+                                <div id="maxScoreDisplay" style="font-size:11px; color:rgba(255,255,255,0.6); margin-top:4px;">/8</div>
                             </div>
                         </div>
 
@@ -2167,6 +2167,7 @@ var previousResultsDate = null;
 var usedQuestions = {};
 var studentAssignments = [];
 var examSessionId = null;
+var NUM_QUESTIONS = 5; // Hər tələbəyə verilən sual sayı (mövzu sayına görə avtomatik tənzimlənir)
 var timerInterval = null;
 var timeRemaining = 180; // 3 dəqiqə = 180 saniyə
 var TIMER_DURATION = 180;
@@ -2191,10 +2192,11 @@ function prepareExam() {
 
     for (var s = 0; s < students.length; s++) {
         var topicOrder = shuffle(topicNames);
-        var selectedTopics = topicOrder.slice(0, 5);
+        NUM_QUESTIONS = Math.min(5, topicNames.length);
+        var selectedTopics = topicOrder.slice(0, NUM_QUESTIONS);
 
         var qs = [];
-        for (var t = 0; t < 5; t++) {
+        for (var t = 0; t < NUM_QUESTIONS; t++) {
             var topic = selectedTopics[t];
             var topicQs = questions[topic];
 
@@ -2357,7 +2359,7 @@ function updateTimerDisplay() {
 function timerExpired() {
     playTimeUpSound();
     // Cavablanmamış sualları -1 (cavablamadı) et
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < NUM_QUESTIONS; i++) {
         if (questionScores[i] === undefined) {
             questionScores[i] = -1;
         }
@@ -2425,7 +2427,7 @@ function addTimeAndResume(seconds) {
     timeRemaining += seconds;
     if (timeRemaining > TIMER_DURATION) timeRemaining = TIMER_DURATION;
     // Cavablamadı olan sualları geri aç
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < NUM_QUESTIONS; i++) {
         if (questionScores[i] === -1) {
             delete questionScores[i];
         }
@@ -2445,7 +2447,7 @@ function addTimeAndResume(seconds) {
     document.getElementById('notebookSection').classList.remove('visible');
     document.getElementById('questionBox').style.display = 'block';
     document.getElementById('qTopic').style.display = 'block';
-    for (var j = 0; j < 5; j++) {
+    for (var j = 0; j < NUM_QUESTIONS; j++) {
         if (questionScores[j] === undefined) {
             currentQuestionIndex = j;
             loadQuestion();
@@ -2535,7 +2537,7 @@ function loadStudent() {
 function updateQuestionIndicators() {
     var container = document.getElementById('questionIndicators');
     container.innerHTML = '';
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < NUM_QUESTIONS; i++) {
         var div = document.createElement('div');
         div.className = 'q-indicator';
         div.textContent = (i + 1);
@@ -2608,7 +2610,7 @@ function loadQuestion() {
     document.getElementById('questionCounter').textContent = 'Sual ' + (currentQuestionIndex + 1) + ' / 5';
 
     var answeredCount = Object.keys(questionScores).length;
-    var progress = (answeredCount / 5) * 100;
+    var progress = (answeredCount / NUM_QUESTIONS) * 100;
     document.getElementById('progressFill').style.width = progress + '%';
 
     document.getElementById('notebookSection').classList.remove('visible');
@@ -2662,29 +2664,29 @@ function setQuestionScore(score) {
 
     // Hər sualdan sonra nəticəni saxla
     var scoresArrayTemp = [];
-    for (var si = 0; si < 5; si++) { scoresArrayTemp.push(questionScores[si] !== undefined ? questionScores[si] : null); }
+    for (var si = 0; si < NUM_QUESTIONS; si++) { scoresArrayTemp.push(questionScores[si] !== undefined ? questionScores[si] : null); }
     allResults[currentStudentIndex].questionScores = scoresArrayTemp;
     saveToFirebase();
 
     var answeredCount = Object.keys(questionScores).length;
-    var progress = (answeredCount / 5) * 100;
+    var progress = (answeredCount / NUM_QUESTIONS) * 100;
     document.getElementById('progressFill').style.width = progress + '%';
 
-    if (answeredCount === 5) {
+    if (answeredCount === NUM_QUESTIONS) {
         setTimeout(function() { finishQuestions(); }, 1000);
         return;
     }
 
     // 1 saniyə sonra növbəti cavablanmamış suala keç
     setTimeout(function() {
-        for (var i = currentQuestionIndex + 1; i < 5; i++) {
+        for (var i = currentQuestionIndex + 1; i < NUM_QUESTIONS; i++) {
             if (questionScores[i] === undefined) {
                 currentQuestionIndex = i;
                 loadQuestion();
                 return;
             }
         }
-        for (var j = 0; j < 5; j++) {
+        for (var j = 0; j < NUM_QUESTIONS; j++) {
             if (questionScores[j] === undefined) {
                 currentQuestionIndex = j;
                 loadQuestion();
@@ -2696,7 +2698,7 @@ function setQuestionScore(score) {
 
 function getQuestionTotal() {
     var total = 0;
-    for (var i = 0; i < 5; i++) { if (questionScores[i] === 1) total++; }
+    for (var i = 0; i < NUM_QUESTIONS; i++) { if (questionScores[i] === 1) total++; }
     return total;
 }
 
@@ -2731,7 +2733,7 @@ function finishQuestions() {
     document.getElementById('qTopic').style.display = 'none';
     document.getElementById('questionCounter').textContent = 'Dəftər səliqəsini qiymətləndirin.';
     document.getElementById('notebookSection').classList.add('visible');
-    document.getElementById('questionTotalDisplay').textContent = getQuestionTotal() + '/5';
+    document.getElementById('questionTotalDisplay').textContent = getQuestionTotal() + '/' + NUM_QUESTIONS;
     document.getElementById('notebookScore').value = '';
     document.getElementById('notebookNote').value = '';
     var checkboxes = document.querySelectorAll('.incomplete-topic');
@@ -2742,14 +2744,15 @@ function finishQuestions() {
 function submitNotebookScore() {
     var rawVal = document.getElementById('notebookScore').value.trim();
     var val = parseInt(rawVal, 10);
-    if (isNaN(val) || val < 0 || val > 10) {
-        alert('Ümumi qiymət 0-10 arasında olmalıdır!');
+    var maxScore = NUM_QUESTIONS * 2;
+    if (isNaN(val) || val < 0 || val > maxScore) {
+        alert('Ümumi qiymət 0-' + maxScore + ' arasında olmalıdır!');
         return;
     }
     var total = val;
 
     var scoresArray = [];
-    for (var i = 0; i < 5; i++) { scoresArray.push(questionScores[i] === 1 ? 1 : 0); }
+    for (var i = 0; i < NUM_QUESTIONS; i++) { scoresArray.push(questionScores[i] === 1 ? 1 : 0); }
     var questionTotal = scoresArray.reduce(function(a, b) { return a + b; }, 0);
     notebookScoreVal = total - questionTotal;
     if (notebookScoreVal < 0) notebookScoreVal = 0;
@@ -2780,7 +2783,7 @@ function showStudentResult(qTotal, nScore, total) {
     var tbody = document.getElementById('summaryBody');
     tbody.innerHTML = '';
 
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < NUM_QUESTIONS; i++) {
         var tr = document.createElement('tr');
         var origScore = questionScores[i];
         var scoreBg, scoreIcon, scoreText;
@@ -2806,11 +2809,11 @@ function showStudentResult(qTotal, nScore, total) {
 
     var ntr = document.createElement('tr');
     ntr.style.background = 'linear-gradient(135deg, rgba(232,245,233,0.8), rgba(200,230,201,0.8))';
-    ntr.innerHTML = '<td colspan="2" style="font-weight:700; font-size:15px;">Dəftər səliqəsi</td><td><span style="display:inline-block; background:linear-gradient(135deg, #1565c0, #1e88e5); color:#fff; font-weight:700; padding:4px 14px; border-radius:20px; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.15);">' + nScore + '/5</span></td>';
+    ntr.innerHTML = '<td colspan="2" style="font-weight:700; font-size:15px;">Dəftər səliqəsi</td><td><span style="display:inline-block; background:linear-gradient(135deg, #1565c0, #1e88e5); color:#fff; font-weight:700; padding:4px 14px; border-radius:20px; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.15);">' + nScore + '/' + NUM_QUESTIONS + '</span></td>';
     tbody.appendChild(ntr);
 
     document.getElementById('totalScore').textContent = total + ' / 10';
-    document.getElementById('totalDetail').textContent = 'Sual balı: ' + qTotal + '/5 | Dəftər balı: ' + nScore + '/5';
+    document.getElementById('totalDetail').textContent = 'Sual balı: ' + qTotal + '/' + NUM_QUESTIONS + ' | Dəftər balı: ' + nScore + '/' + NUM_QUESTIONS;
 
     if (currentStudentIndex >= students.length - 1) {
         document.getElementById('nextStudentBtn').textContent = 'Kollokviyumu Bitir';
@@ -2972,12 +2975,12 @@ function updateAllResultsTable() {
             nScoreText = '-';
             totalText = '-';
         } else {
-            qScoreText = r.done ? r.questionScores.reduce(function(a,b){return a+b;}, 0) + '/5' : '-';
-            nScoreText = r.done ? r.notebookScore + '/5' : '-';
+            qScoreText = r.done ? r.questionScores.reduce(function(a,b){return a+b;}, 0) + '/' + NUM_QUESTIONS : '-';
+            nScoreText = r.done ? r.notebookScore + '/' + NUM_QUESTIONS : '-';
             if (r.done && r.note) {
                 nScoreText += ' <span class="note-icon" onmouseenter="showNotePopup(' + i + ', event)" onmouseleave="hideNotePopup()">&#128221;</span>';
             }
-            totalText = r.done ? r.total + '/10' : '-';
+            totalText = r.done ? r.total + '/' + (NUM_QUESTIONS * 2) : '-';
         }
 
         var deleteBtn;
@@ -3035,12 +3038,12 @@ function updateAllResultsTableForViewing(results) {
             nScoreText = '-';
             totalText = '-';
         } else {
-            qScoreText = r.done ? r.questionScores.reduce(function(a,b){return a+b;}, 0) + '/5' : '-';
-            nScoreText = r.done ? r.notebookScore + '/5' : '-';
+            qScoreText = r.done ? r.questionScores.reduce(function(a,b){return a+b;}, 0) + '/' + NUM_QUESTIONS : '-';
+            nScoreText = r.done ? r.notebookScore + '/' + NUM_QUESTIONS : '-';
             if (r.done && r.note) {
                 nScoreText += ' <span class="note-icon" onmouseenter="showNotePopup(' + i + ', event)" onmouseleave="hideNotePopup()">&#128221;</span>';
             }
-            totalText = r.done ? r.total + '/10' : '-';
+            totalText = r.done ? r.total + '/' + (NUM_QUESTIONS * 2) : '-';
         }
 
         var deleteBtn;
@@ -3242,8 +3245,8 @@ function saveEditResult() {
             }
         }
 
-        if (isNaN(total) || total < 0 || total > 10) {
-            alert('Ümumi qiymət 0-10 arasında olmalıdır!');
+        if (isNaN(total) || total < 0 || total > NUM_QUESTIONS * 2) {
+            alert('Ümumi qiymət 0-' + (NUM_QUESTIONS * 2) + ' arasında olmalıdır!');
             return;
         }
 
@@ -3407,7 +3410,7 @@ function showFinalResults() {
                 '<td><span class="status-badge status-pending">Qiymətləndirilməyib</span></td>';
         } else {
             var qTotal = r.questionScores.reduce(function(a, b) { return a + b; }, 0);
-            var nScoreText = r.notebookScore + '/5';
+            var nScoreText = r.notebookScore + '/' + NUM_QUESTIONS;
             if (r.note) {
                 var rIdx = allResults.indexOf(r);
                 nScoreText += ' <span class="note-icon" onmouseenter="showNotePopup(' + rIdx + ', event)" onmouseleave="hideNotePopup()">&#128221;</span>';
@@ -3415,9 +3418,9 @@ function showFinalResults() {
             tr.innerHTML =
                 '<td>' + (i + 1) + '</td>' +
                 '<td>' + r.name + '</td>' +
-                '<td>' + qTotal + '/5</td>' +
+                '<td>' + qTotal + '/' + NUM_QUESTIONS + '</td>' +
                 '<td>' + nScoreText + '</td>' +
-                '<td style="font-weight:bold; color:#455f51;">' + r.total + '/10</td>' +
+                '<td style="font-weight:bold; color:#455f51;">' + r.total + '/' + (NUM_QUESTIONS * 2) + '</td>' +
                 '<td><span class="status-badge status-done">Bitdi</span></td>';
         }
         tbody.appendChild(tr);
@@ -3479,9 +3482,9 @@ function exportAllResultsPDF() {
             dataRows.push({
                 num: String(i + 1),
                 name: r.name || r.student || '',
-                sual: r.absent ? '-' : qTotal + '/5',
-                defter: r.absent ? '-' : (r.notebookScore + '/5'),
-                umumi: r.absent ? '-' : (r.total + '/10'),
+                sual: r.absent ? '-' : qTotal + '/' + NUM_QUESTIONS,
+                defter: r.absent ? '-' : (r.notebookScore + '/' + NUM_QUESTIONS),
+                umumi: r.absent ? '-' : (r.total + '/' + (NUM_QUESTIONS * 2)),
                 status: r.absent ? 'İştirak etmir' : 'Bitdi'
             });
         }
