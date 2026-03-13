@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node compare.js)",
+      "Bash(node generate.js)",
+      "Bash(node rebuild.js)",
+      "Bash(node -e \":*)",
+      "Bash(node rebuild_html.js)",
+      "Bash(start \"\" \"e:\\\\kollokvium1-main\\\\kollokvium.html\")",
+      "Bash(find /d/kollokvium1-main -type f -name *.ts -o -name *.tsx -o -name *.js -o -name *.jsx -o -name *.vue)",
+      "Bash(git init:*)",
+      "Bash(git remote:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)"
+    ]
+  }
+}
